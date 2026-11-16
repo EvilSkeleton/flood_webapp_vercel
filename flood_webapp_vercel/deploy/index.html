@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brahmaputra Flood Predictor</title>
+<style>
+:root{--navy:#1F3A5F;--blue:#2563a8;--light:#E8EEF5;--line:#d5dde7;--ink:#1d2733;--muted:#5b6776;--low:#2f7d5b;--mod:#b7791f;--high:#c2410c;--bg:#f6f8fb}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.45}
+header{background:var(--navy);color:#fff;padding:18px 24px;border-bottom:4px solid var(--high)}
+header h1{margin:0;font-size:20px;font-weight:650}
+header p{margin:4px 0 0;font-size:13px;opacity:.85}
+main{max-width:1180px;margin:0 auto;padding:20px 20px 40px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
+@media (max-width:860px){main{grid-template-columns:1fr}}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px}
+h2{font-size:15px;margin:0 0 12px;color:var(--navy)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:7px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--blue);color:var(--blue)}
+button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.field{display:grid;grid-template-columns:1fr 86px;gap:4px 12px;align-items:center;padding:9px 0;border-top:1px solid #eef2f6}
+.field label{font-size:13.5px;font-weight:550}
+.field small{grid-column:1/3;color:var(--muted);font-size:12px}
+.field input[type=number]{width:86px;font:inherit;font-size:13.5px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;text-align:right}
+.field input[type=range]{grid-column:1/3;width:100%;accent-color:var(--blue)}
+.group{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px;font-weight:650}
+.result{text-align:center;padding:6px 0 4px}
+.prob{font-size:54px;font-weight:700;line-height:1;margin:6px 0}
+.band{display:inline-block;padding:5px 12px;border-radius:999px;font-weight:650;font-size:14px;color:#fff}
+.meter{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--low) 0 40%,var(--mod) 40% 70%,var(--high) 70% 100%);position:relative;margin:18px 4px 6px}
+.meter i{position:absolute;top:-5px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-2px);transition:left .25s}
+.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:0 4px}
+.action{margin-top:14px;padding:12px 14px;border-radius:8px;background:var(--light);text-align:left;font-size:13.5px}
+.drivers .row{display:grid;grid-template-columns:150px 1fr 54px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0}
+.bar{height:12px;position:relative;background:#f1f4f8;border-radius:3px}
+.bar span{position:absolute;top:0;height:12px;border-radius:3px}
+.bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#9aa5b1}
+.note{font-size:12px;color:var(--muted);margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
+th,td{padding:5px 6px;border-bottom:1px solid #eef2f6;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--light);color:var(--navy)}
+.full{grid-column:1/-1}
+.drop{border:1.5px dashed var(--line);border-radius:8px;padding:14px;text-align:center;font-size:13px;color:var(--muted)}
+.drop input{margin-top:8px}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+.kpi{flex:1 1 120px;background:var(--light);border-radius:8px;padding:9px 11px}
+.kpi b{display:block;font-size:18px;color:var(--navy)}
+.kpi span{font-size:11.5px;color:var(--muted)}
+footer{max-width:1180px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Brahmaputra Valley Flood Predictor</h1>
+  <p>Enter sensor readings for a location and get the probability of flooding, the alert decision and what is driving it. Prototype for the DPR, Ministry of Jal Shakti pilot.</p>
+</header>
+<main>
+  <section class="card">
+    <h2>Sensor readings</h2>
+    <div class="presets">
+      <button data-preset="normal">Dry spell</button>
+      <button data-preset="monsoon">Heavy monsoon spell</button>
+      <button data-preset="flash">Watch: rising river</button>
+      <button data-preset="reset">Brahmaputra typical</button>
+    </div>
+    <div id="fields"></div>
+  </section>
+
+  <section>
+    <div class="card">
+      <h2>Prediction</h2>
+      <div class="result">
+        <div class="prob" id="prob">0%</div>
+        <span class="band" id="band">Low</span>
+        <div class="meter"><i id="needle"></i></div>
+        <div class="ticks"><span>0%</span><span>40% alert threshold</span><span>70%</span><span>100%</span></div>
+      </div>
+      <div class="action" id="action"></div>
+    </div>
+    <div class="card drivers" style="margin-top:20px">
+      <h2>What is driving this prediction</h2>
+      <div id="drivers"></div>
+      <p class="note">Each bar shows how far a reading pushes the risk up (orange) or down (green) compared with a typical Brahmaputra observation. Logistic regression, so every alert can be explained.</p>
+    </div>
+  </section>
+
+  <section class="card full">
+    <h2>Batch prediction from a file</h2>
+    <div class="drop">
+      Upload a CSV with any of these columns: <code id="colnames"></code>. Missing columns use typical values.<br>
+      <input type="file" id="file" accept=".csv,text/csv">
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div id="batch"></div>
+    <div id="copywrap" style="display:none;margin-top:10px"><button id="copy">Copy results as CSV</button> <span id="copied" class="note"></span></div>
+  </section>
+
+  <section class="card full">
+    <h2>About the model</h2>
+    <div class="kpis">
+      <div class="kpi"><b id="k-auc"></b><span>Cross-validated AUC</span></div>
+      <div class="kpi"><b id="k-rec"></b><span>Floods caught at the 40% threshold</span></div>
+      <div class="kpi"><b>9</b><span>Predictors (data dictionary selection)</span></div>
+      <div class="kpi"><b>1,000</b><span>Training observations, 9 basins</span></div>
+    </div>
+    <p class="note">Trained on the synthetic sample dataset supplied with the case (Flood_Prediction_v2.1). Outcome fields (water depth, NDWI, risk score, severity) were excluded to prevent leakage. The threshold is set at 40% rather than 50% because a missed flood costs lives and a false alarm costs trust. Field accuracy will be lower than on synthetic data; this is a prototype, not an operational warning system.</p>
+  </section>
+</main>
+<footer>Group assignment, MI-298 Managing Technology and Information Systems for Industry 4.0, IIM Calcutta. Case is fictitious.</footer>
+
+<script>
+const M = {"intercept": -16.802373460888447, "coef": {"distance_to_river_km": -0.33634348127262453, "rain_mm_24h": 0.25371356966905173, "api_7d": 0.3299267714682064, "river_level_m": 1.8300553113005473, "dam_discharge_cumecs": 0.011998651480086652, "storm_drain_capacity_mmph": -0.18175383229625505, "drain_blockage_index": 0.04126226716926124, "tide_level_m": 1.132578596328909, "storm_surge_m": 1.570397256530994}, "ranges": {"distance_to_river_km": {"min": 0.05, "p50": 2.285, "max": 22.89, "brahma_p50": 2.14}, "rain_mm_24h": {"min": 2.7, "p50": 22.5, "max": 80.7, "brahma_p50": 21.6}, "api_7d": {"min": 0.0, "p50": 15.55, "max": 47.7, "brahma_p50": 17.1}, "river_level_m": {"min": 0.8, "p50": 3.96, "max": 7.08, "brahma_p50": 3.95}, "dam_discharge_cumecs": {"min": 1.8, "p50": 71.75, "max": 349.9, "brahma_p50": 73.5}, "storm_drain_capacity_mmph": {"min": 5.0, "p50": 25.55, "max": 52.4, "brahma_p50": 26.0}, "drain_blockage_index": {"min": 0.3, "p50": 27.35, "max": 82.4, "brahma_p50": 24.7}, "tide_level_m": {"min": 0.0, "p50": 0.0, "max": 1.94, "brahma_p50": 0.0}, "storm_surge_m": {"min": 0.0, "p50": 0.0, "max": 1.31, "brahma_p50": 0.0}}, "auc": 0.984, "recall04": 0.919};
+const META = {
+  rain_mm_24h:{label:"Rainfall, last 24 h", unit:"mm", hint:"Automatic rain gauges", group:"Rainfall and wetness"},
+  api_7d:{label:"Antecedent rainfall index, 7 days", unit:"mm", hint:"How wet the catchment already is", group:"Rainfall and wetness"},
+  river_level_m:{label:"River level at nearby gauge", unit:"m", hint:"Radar level sensor, relative to local reference", group:"River"},
+  dam_discharge_cumecs:{label:"Upstream dam discharge", unit:"m³/s", hint:"Release notified by dam operator", group:"River"},
+  distance_to_river_km:{label:"Distance to river", unit:"km", hint:"Village cluster to main channel", group:"Location and drainage"},
+  storm_drain_capacity_mmph:{label:"Drainage capacity", unit:"mm/h", hint:"Rain rate local drainage can carry", group:"Location and drainage"},
+  drain_blockage_index:{label:"Drain blockage", unit:"%", hint:"Silt and debris in drains", group:"Location and drainage"},
+  tide_level_m:{label:"Tide level", unit:"m", hint:"Coastal only; 0 in the Brahmaputra valley", group:"Coastal (zero inland)"},
+  storm_surge_m:{label:"Storm surge", unit:"m", hint:"Coastal only; 0 in the Brahmaputra valley", group:"Coastal (zero inland)"}
+};
+const ORDER = Object.keys(META);
+const typical = Object.fromEntries(ORDER.map(k=>[k, M.ranges[k].brahma_p50]));
+const PRESETS = {
+  normal:{rain_mm_24h:12,api_7d:10,river_level_m:3.2,dam_discharge_cumecs:50,distance_to_river_km:3,storm_drain_capacity_mmph:28,drain_blockage_index:20,tide_level_m:0,storm_surge_m:0},
+  monsoon:{rain_mm_24h:38,api_7d:28,river_level_m:5.0,dam_discharge_cumecs:140,distance_to_river_km:1.5,storm_drain_capacity_mmph:24,drain_blockage_index:35,tide_level_m:0,storm_surge_m:0},
+  flash:{rain_mm_24h:30,api_7d:12,river_level_m:4.0,dam_discharge_cumecs:80,distance_to_river_km:1.2,storm_drain_capacity_mmph:22,drain_blockage_index:45,tide_level_m:0,storm_surge_m:0},
+  reset:typical
+};
+const state = {...typical};
+const fmt = v => (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(1));
+const sig = z => 1/(1+Math.exp(-z));
+function predict(x){
+  let z = M.intercept;
+  for (const k of ORDER) z += M.coef[k]*(x[k] ?? typical[k]);
+  return sig(z);
+}
+function band(p){
+  if (p < 0.4) return {name:"Low", color:"var(--low)"};
+  if (p < 0.7) return {name:"Moderate: alert", color:"var(--mod)"};
+  return {name:"High: alert", color:"var(--high)"};
+}
+function buildFields(){
+  const host = document.getElementById("fields"); let g = "";
+  for (const k of ORDER){
+    const m = META[k], r = M.ranges[k];
+    if (m.group !== g){ g = m.group; host.insertAdjacentHTML("beforeend", `<div class="group">${g}</div>`); }
+    const step = r.max > 50 ? 1 : 0.1;
+    host.insertAdjacentHTML("beforeend", `
+      <div class="field">
+        <label for="n-${k}">${m.label} (${m.unit})</label>
+        <input type="number" id="n-${k}" min="0" step="${step}">
+        <input type="range" id="r-${k}" min="${Math.min(0, r.min)}" max="${(r.max*1.1).toFixed(1)}" step="${step}" aria-label="${m.label}">
+        <small>${m.hint}. Sample range ${fmt(r.min)} to ${fmt(r.max)}.</small>
+      </div>`);
+    const n = document.getElementById("n-"+k), s = document.getElementById("r-"+k);
+    n.addEventListener("input", ()=>{ const v = parseFloat(n.value); if (!isNaN(v)){ state[k]=v; s.value=v; render(); }});
+    s.addEventListener("input", ()=>{ state[k]=parseFloat(s.value); n.value=s.value; render(); });
+  }
+}
+function sync(){ for (const k of ORDER){ document.getElementById("n-"+k).value = state[k]; document.getElementById("r-"+k).value = state[k]; } }
+function render(){
+  const p = predict(state), b = band(p);
+  document.getElementById("prob").textContent = Math.round(p*100) + "%";
+  document.getElementById("prob").style.color = b.color;
+  const be = document.getElementById("band"); be.textContent = b.name; be.style.background = b.color;
+  document.getElementById("needle").style.left = (p*100) + "%";
+  document.getElementById("action").innerHTML = p >= 0.4
+    ? `<b>Raise alert.</b> Probability is above the 40% threshold. Send to the CWC duty forecaster for validation; once confirmed, ASDMA issues the warning to the district with place, time window and likelihood.`
+    : `<b>No alert.</b> Probability is below the 40% threshold. Keep monitoring; the edge gateway will sound local sirens if rainfall or river level crosses a hard limit while the cloud link is down.`;
+  const contrib = ORDER.map(k=>({k, c: M.coef[k]*(state[k]-typical[k])})).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c));
+  const maxc = Math.max(2, ...contrib.map(d=>Math.abs(d.c)));
+  document.getElementById("drivers").innerHTML = contrib.map(d=>{
+    const w = Math.abs(d.c)/maxc*50, left = d.c >= 0 ? 50 : 50-w;
+    const col = d.c >= 0 ? "var(--high)" : "var(--low)";
+    return `<div class="row"><span>${META[d.k].label}</span><div class="bar"><span style="left:${left}%;width:${w}%;background:${col}"></span></div><span style="text-align:right">${d.c>=0?"+":""}${d.c.toFixed(2)}</span></div>`;
+  }).join("");
+}
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click", ()=>{ Object.assign(state, PRESETS[b.dataset.preset]); sync(); render(); }));
+
+// batch
+document.getElementById("colnames").textContent = ORDER.join(", ");
+let lastCsv = "";
+function parseCSV(text){
+  const lines = text.replace(/\r/g,"").split("\n").filter(l=>l.trim());
+  const head = lines[0].split(",").map(h=>h.trim().replace(/^"|"$/g,""));
+  return lines.slice(1).map(l=>{ const c = l.split(","); const o = {}; head.forEach((h,i)=>o[h]=c[i]); return o; });
+}
+document.getElementById("file").addEventListener("change", async e=>{
+  const f = e.target.files[0]; if (!f) return;
+  const rows = parseCSV(await f.text());
+  const out = rows.map(r=>{
+    const x = {}; for (const k of ORDER){ const v = parseFloat(r[k]); x[k] = isNaN(v) ? typical[k] : v; }
+    const p = predict(x);
+    const actual = r.flood_occurred !== undefined && r.flood_occurred !== "" ? Number(r.flood_occurred) : null;
+    return {id: r.timestamp || r.id || "", basin: r.basin || "", p, alert: p >= 0.4 ? 1 : 0, actual};
+  });
+  const n = out.length, alerts = out.filter(o=>o.alert).length;
+  const lab = out.filter(o=>o.actual !== null);
+  let kp = `<div class="kpi"><b>${n.toLocaleString()}</b><span>Rows scored</span></div><div class="kpi"><b>${alerts.toLocaleString()}</b><span>Alerts at 40%</span></div>`;
+  if (lab.length){
+    const tp = lab.filter(o=>o.alert&&o.actual===1).length, fn = lab.filter(o=>!o.alert&&o.actual===1).length;
+    const fp = lab.filter(o=>o.alert&&o.actual===0).length, ok = lab.filter(o=>o.alert===o.actual).length;
+    kp += `<div class="kpi"><b>${(ok/lab.length*100).toFixed(1)}%</b><span>Accuracy vs flood_occurred</span></div><div class="kpi"><b>${tp+fn?(tp/(tp+fn)*100).toFixed(1):"-"}%</b><span>Floods caught (recall)</span></div><div class="kpi"><b>${fn}</b><span>Floods missed</span></div><div class="kpi"><b>${fp}</b><span>False alarms</span></div>`;
+  }
+  document.getElementById("kpis").innerHTML = kp;
+  const show = out.slice(0, 50);
+  document.getElementById("batch").innerHTML = `<table><thead><tr><th>Row</th><th>Basin</th><th>Probability</th><th>Alert</th>${lab.length?"<th>Actual</th>":""}</tr></thead><tbody>${
+    show.map((o,i)=>`<tr><td>${o.id||i+1}</td><td>${o.basin}</td><td>${(o.p*100).toFixed(1)}%</td><td>${o.alert?"Yes":"No"}</td>${lab.length?`<td>${o.actual??""}</td>`:""}</tr>`).join("")
+  }</tbody></table>${n>50?`<p class="note">Showing first 50 of ${n} rows. Copy the CSV for all.</p>`:""}`;
+  lastCsv = "row,basin,flood_probability,alert" + (lab.length?",flood_occurred":"") + "\n" + out.map((o,i)=>[o.id||i+1,o.basin,o.p.toFixed(4),o.alert].concat(lab.length?[o.actual??""]:[]).join(",")).join("\n");
+  document.getElementById("copywrap").style.display = "block";
+});
+document.getElementById("copy").addEventListener("click", async ()=>{
+  try { await navigator.clipboard.writeText(lastCsv); document.getElementById("copied").textContent = "Copied."; }
+  catch { document.getElementById("copied").textContent = "Copy was blocked by the browser."; }
+});
+
+document.getElementById("k-auc").textContent = M.auc.toFixed(3);
+document.getElementById("k-rec").textContent = Math.round(M.recall04*100) + "%";
+buildFields(); sync(); render();
+</script>
+</body>
+</html>
