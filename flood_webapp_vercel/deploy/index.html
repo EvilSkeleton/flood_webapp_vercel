@@ -394,11 +394,11 @@ details .body p{margin:0 0 10px}
           </div>
           <div class="pillrow" role="status" aria-live="polite"><div class="band b-low" id="band"><i></i><span id="bandtxt">Low</span></div></div>
                     <dl class="bands">
-            <div style="border-color:var(--low)"><dt>Low</dt><dd>below 40%</dd></div>
-            <div style="border-color:var(--mod)"><dt>Moderate: alert</dt><dd>40% to 70%</dd></div>
+            <div style="border-color:var(--low)"><dt>Low</dt><dd>below 30%</dd></div>
+            <div style="border-color:var(--mod)"><dt>Moderate: alert</dt><dd>30% to 70%</dd></div>
             <div style="border-color:var(--high)"><dt>High: alert</dt><dd>70% or more</dd></div>
           </dl>
-          <p class="note" style="margin-top:8px">The alert threshold is 40%.</p>
+          <p class="note" style="margin-top:8px">The alert threshold is 30%.</p>
           <div class="action" id="action"></div>
           <p class="scope" id="scope"></p>
         </div>
@@ -428,10 +428,10 @@ details .body p{margin:0 0 10px}
       <div>
         <div class="legend" id="legend">
           <div class="count" id="count" aria-live="polite"></div>
-          <div class="item"><span class="dot" style="background:var(--low)"></span>Low: below 40%</div>
-          <div class="item"><span class="dot" style="background:var(--mod)"></span>Moderate, alert: 40% to 70%</div>
+          <div class="item"><span class="dot" style="background:var(--low)"></span>Low: below 30%</div>
+          <div class="item"><span class="dot" style="background:var(--mod)"></span>Moderate, alert: 30% to 70%</div>
           <div class="item"><span class="dot" style="background:var(--high)"></span>High, alert: 70% or more</div>
-          <p class="note" style="margin:4px 0 0">Alert threshold is 40%. Circle size grows with probability. The river line is an approximate course. Site profiles (distance to river, drainage, blockage, rain and river-level factors) are illustrative, not surveyed.</p>
+          <p class="note" style="margin:4px 0 0">Alert threshold is 30%. Circle size grows with probability. The river line is an approximate course. Site profiles (distance to river, drainage, blockage, rain and river-level factors) are illustrative, not surveyed.</p>
         </div>
         <div class="sites" tabindex="0" role="region" aria-label="Sites table, scrollable">
           <table>
@@ -591,7 +591,8 @@ details .body p{margin:0 0 10px}
     <h2 id="about-h">What is under the hood.</h2>
     <div class="kpis">
       <div class="kpi"><b id="k-auc"></b><span>Cross-validated AUC</span></div>
-      <div class="kpi"><b id="k-rec"></b><span>Floods caught at the 40% threshold</span></div>
+      <div class="kpi"><b id="k-rec"></b><span>Floods caught at the 30% threshold, all basins, cross-validated</span></div>
+      <div class="kpi"><b id="k-rec-br"></b><span>Floods caught in the Brahmaputra basin alone (28 floods, 85 rows)</span></div>
       <div class="kpi"><b>9</b><span>Predictors (data dictionary selection)</span></div>
       <div class="kpi"><b>1,000</b><span>Training observations, 9 basins</span></div>
     </div>
@@ -599,7 +600,7 @@ details .body p{margin:0 0 10px}
       <div class="card"><h3 class="cap">What moves the odds most</h3><ul class="odds" id="odds"></ul><div class="caution"><b>Caution.</b> Synthetic one-year sample; real accuracy will be proved in shadow mode. Planning assumes 80%.</div></div>
       <div class="card"><h3 class="cap">Models compared</h3><p class="subnote" style="margin-bottom:0">Cross-validated AUC. Axis starts at 0.85.</p><div id="models"></div><p class="note">The simplest model scored best, and its reasoning can be explained to a District Collector.</p></div>
     </div>
-    <p class="note">Trained on the synthetic sample dataset supplied with the case (Flood_Prediction_v2.1). Outcome fields (water depth, NDWI, risk score, severity) were excluded to prevent leakage. The threshold is set at 40% rather than 50% because a missed flood costs lives and a false alarm costs trust. Field accuracy will be lower than on synthetic data; this is a prototype, not an operational warning system.</p>
+    <p class="note">Trained on the synthetic sample dataset supplied with the case (Flood_Prediction_v2.1). Outcome fields (water depth, NDWI, risk score, severity) were excluded to prevent leakage. The threshold is set at 30% because a missed flood costs lives and a false alarm costs trust. At 30%, cross-validated recall is about 95% with about 84% precision; at 40% it would be 92% and 89%. Brahmaputra alone has only 85 rows, so its recall is noisy. Field accuracy will be lower than on synthetic data; this is a prototype, not an operational warning system.</p>
   </div>
 </section>
 </main>
@@ -612,7 +613,7 @@ const META = {
   rain_mm_24h:{label:"Rainfall, last 24 h", unit:"mm", hint:"Automatic rain gauges", group:"Rainfall and wetness"},
   api_7d:{label:"Antecedent rainfall index, 7 days", unit:"mm", hint:"How wet the catchment already is", group:"Rainfall and wetness"},
   river_level_m:{label:"River level at nearby gauge", unit:"m", hint:"Radar level sensor, relative to local reference", group:"River"},
-  dam_discharge_cumecs:{label:"Upstream dam discharge", unit:"m³/s", hint:"Release notified by dam operator", group:"River"},
+  dam_discharge_cumecs:{label:"Dam discharge", unit:"m³/s", hint:"Release notified by dam operator", group:"River"},
   distance_to_river_km:{label:"Distance to river", unit:"km", hint:"Village cluster to main channel", group:"Location and drainage"},
   storm_drain_capacity_mmph:{label:"Drainage capacity", unit:"mm/h", hint:"Rain rate local drainage can carry", group:"Location and drainage"},
   drain_blockage_index:{label:"Drain blockage", unit:"%", hint:"Silt and debris in drains", group:"Location and drainage"},
@@ -620,6 +621,9 @@ const META = {
   storm_surge_m:{label:"Storm surge", unit:"m", hint:"Coastal only; 0 in the Brahmaputra valley", group:"Coastal (zero inland)"}
 };
 const ORDER = Object.keys(META);
+// Alert cutoff. 0.30 follows the EDA workbook (Evaluation sheet): about 95% recall at about 84% precision, cross-validated.
+const CUTOFF = 0.3;
+const EDA = {recall:0.9547, recallBrahmaputra:0.8929};   // from Flood_Prediction_EDA_and_Model_v2.xlsx at cutoff 0.30
 const PROFILE_KEYS = ["distance_to_river_km","storm_drain_capacity_mmph","drain_blockage_index"];
 const typical = Object.fromEntries(ORDER.map(k=>[k, M.ranges[k].brahma_p50]));
 const PRESETS = {
@@ -637,7 +641,7 @@ function predict(x){
   return sig(z);
 }
 function band(p){
-  if (p < 0.4) return {name:"Low", color:"var(--low)"};
+  if (p < CUTOFF) return {name:"Low", color:"var(--low)"};
   if (p < 0.7) return {name:"Moderate: alert", color:"var(--mod)"};
   return {name:"High: alert", color:"var(--high)"};
 }
@@ -691,7 +695,7 @@ function markPreset(name){ document.querySelectorAll("[data-preset]").forEach(b=
 function buildGauge(){
   const pt = t => [120 - 100*Math.cos(Math.PI*t), 120 - 100*Math.sin(Math.PI*t)].map(v=>v.toFixed(2));
   const seg = (a,b,c) => { const [x0,y0]=pt(a), [x1,y1]=pt(b); return `<path d="M${x0} ${y0} A100 100 0 0 1 ${x1} ${y1}" stroke="${c}"/>`; };
-  document.getElementById("gsegs").innerHTML = seg(0,.4,HEX.low) + seg(.4,.7,HEX.mod) + seg(.7,1,HEX.high);
+  document.getElementById("gsegs").innerHTML = seg(0,CUTOFF,HEX.low) + seg(CUTOFF,.7,HEX.mod) + seg(.7,1,HEX.high);
 }
 
 function render(){
@@ -708,9 +712,9 @@ function render(){
     : "Readings are used exactly as entered.";
   document.querySelector("main").classList.toggle("site-mode", !!site);
   document.getElementById("btn-custom").setAttribute("aria-pressed", String(!site));
-  document.getElementById("action").innerHTML = p >= 0.4
-    ? `<b>Raise alert.</b> Probability is above the 40% threshold. Send to the CWC duty forecaster for validation; once confirmed, ASDMA issues the warning to the district with place, time window and likelihood.`
-    : `<b>No alert.</b> Probability is below the 40% threshold. Keep monitoring; the edge gateway will sound local sirens if rainfall or river level crosses a hard limit while the cloud link is down.`;
+  document.getElementById("action").innerHTML = p >= CUTOFF
+    ? `<b>Raise alert.</b> Probability is above the 30% threshold. Send to the CWC duty forecaster for validation; once confirmed, ASDMA issues the warning to the district with place, time window and likelihood.`
+    : `<b>No alert.</b> Probability is below the 30% threshold. Keep monitoring; the edge gateway will sound local sirens if rainfall or river level crosses a hard limit while the cloud link is down.`;
   const contrib = ORDER.map(k=>({k, c: M.coef[k]*(x[k]-typical[k])})).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c));
   const maxc = Math.max(2, ...contrib.map(d=>Math.abs(d.c)));
   document.getElementById("drivers").innerHTML = contrib.map(d=>{
@@ -754,7 +758,7 @@ function updateMap(){
   let alerts = 0;
   for (const s of SITES){
     const p = predict(siteInputs(s)), k = bandKey(p), pct = Math.round(p*100), on = s.id === sel;
-    if (p >= 0.4) alerts++;
+    if (p >= CUTOFF) alerts++;
     const m = markers[s.id];
     if (m){
       m.setStyle({radius: 7 + p*13, fillColor: HEX[k], color: on ? "#0e2a47" : "#fff", weight: on ? 4 : 2});
@@ -789,15 +793,15 @@ document.getElementById("file").addEventListener("change", async e=>{
     const x = {}; for (const k of ORDER){ const v = parseFloat(r[k]); x[k] = isNaN(v) ? typical[k] : v; }
     const p = predict(x);
     const actual = r.flood_occurred !== undefined && r.flood_occurred !== "" ? Number(r.flood_occurred) : null;
-    return {id: r.timestamp || r.id || "", basin: r.basin || "", p, alert: p >= 0.4 ? 1 : 0, actual};
+    return {id: r.timestamp || r.id || "", basin: r.basin || "", p, alert: p >= CUTOFF ? 1 : 0, actual};
   });
   const n = out.length, alerts = out.filter(o=>o.alert).length;
   const lab = out.filter(o=>o.actual !== null);
-  let kp = `<div class="kpi"><b>${n.toLocaleString()}</b><span>Rows scored</span></div><div class="kpi"><b>${alerts.toLocaleString()}</b><span>Alerts at 40%</span></div>`;
+  let kp = `<div class="kpi"><b>${n.toLocaleString()}</b><span>Rows scored</span></div><div class="kpi"><b>${alerts.toLocaleString()}</b><span>Alerts at 30%</span></div>`;
   if (lab.length){
     const tp = lab.filter(o=>o.alert&&o.actual===1).length, fn = lab.filter(o=>!o.alert&&o.actual===1).length;
     const fp = lab.filter(o=>o.alert&&o.actual===0).length, ok = lab.filter(o=>o.alert===o.actual).length;
-    kp += `<div class="kpi"><b>${(ok/lab.length*100).toFixed(1)}%</b><span>Accuracy vs flood_occurred</span></div><div class="kpi"><b>${tp+fn?(tp/(tp+fn)*100).toFixed(1):"-"}%</b><span>Floods caught (recall)</span></div><div class="kpi"><b>${fn}</b><span>Floods missed</span></div><div class="kpi"><b>${fp}</b><span>False alarms</span></div>`;
+    kp += `<div class="kpi"><b>${(ok/lab.length*100).toFixed(1)}%</b><span>Accuracy vs flood_occurred (in-sample)</span></div><div class="kpi"><b>${tp+fn?(tp/(tp+fn)*100).toFixed(1):"-"}%</b><span>Floods caught (recall, in-sample)</span></div><div class="kpi"><b>${fn}</b><span>Floods missed</span></div><div class="kpi"><b>${fp}</b><span>False alarms</span></div>`;
   }
   document.getElementById("kpis").innerHTML = kp;
   const show = out.slice(0, 50);
@@ -813,7 +817,8 @@ document.getElementById("copy").addEventListener("click", async ()=>{
 });
 
 document.getElementById("k-auc").textContent = M.auc.toFixed(3);
-document.getElementById("k-rec").textContent = Math.round(M.recall04*100) + "%";
+document.getElementById("k-rec").textContent = Math.round(EDA.recall*100) + "%";
+document.getElementById("k-rec-br").textContent = Math.round(EDA.recallBrahmaputra*100) + "%";
 
 // ---- case sections: how it works, cost and return, roadmap, risks, model extras ----
 const TIPS_DEFAULT = "Hover over a box, or move to it with the Tab key, to see what it does.";
@@ -936,7 +941,7 @@ function buildRisks(){
 function buildModelExtras(){
   const od = [["river_level_m","for each extra metre of river level"],["api_7d","for each point of the 7-day rainfall index"],["rain_mm_24h","for each mm of 24-hour rain"]];
   document.getElementById("odds").innerHTML = od.map(([k,t])=>`<li><strong>×${Math.exp(M.coef[k]).toFixed(2)}</strong><span>${t}</span></li>`).join("");
-  const models = [["Logistic regression",0.984,true],["Gradient boosting",0.968],["Random forest",0.966],["Decision tree",0.900]];
+  const models = [["Logistic regression",0.984,true],["Gradient boosting",0.967],["Random forest",0.965],["Decision tree",0.903]];
   document.getElementById("models").innerHTML = models.map(([n,v,on])=>
     `<div class="mrow${on?" on":""}"><div class="ml"><span>${n}${on?" · chosen":""}</span><strong>${v.toFixed(3)}</strong></div><div class="mt"><span style="width:${((v-0.85)/0.15*100).toFixed(1)}%"></span></div></div>`).join("");
 }
