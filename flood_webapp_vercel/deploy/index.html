@@ -4,85 +4,156 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Brahmaputra Flood Predictor</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
-:root{--navy:#1F3A5F;--blue:#2563a8;--light:#E8EEF5;--line:#d5dde7;--ink:#1d2733;--muted:#5b6776;--low:#2f7d5b;--mod:#b7791f;--high:#c2410c;--bg:#f6f8fb}
+:root{--navy:#1F3A5F;--blue:#2563a8;--light:#E8EEF5;--line:#d5dde7;--line-soft:#e8edf3;--ink:#1d2733;--muted:#5b6776;--low:#2f7d5b;--mod:#b7791f;--high:#c2410c;--bg:#f6f8fb;--surface:#fff;--ring:0 0 0 3px rgba(37,99,168,.4)}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.45}
-header{background:var(--navy);color:#fff;padding:18px 24px;border-bottom:4px solid var(--high)}
-header h1{margin:0;font-size:20px;font-weight:650}
-header p{margin:4px 0 0;font-size:13px;opacity:.85}
-main{max-width:1180px;margin:0 auto;padding:20px 20px 40px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px}
-@media (max-width:860px){main{grid-template-columns:1fr}}
-.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px}
-h2{font-size:15px;margin:0 0 12px;color:var(--navy)}
-.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-button{font:inherit;font-size:13px;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:7px;padding:7px 11px;cursor:pointer}
-button:hover{border-color:var(--blue);color:var(--blue)}
-button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
-.field{display:grid;grid-template-columns:1fr 86px;gap:4px 12px;align-items:center;padding:9px 0;border-top:1px solid #eef2f6}
-.field label{font-size:13.5px;font-weight:550}
-.field small{grid-column:1/3;color:var(--muted);font-size:12px}
-.field input[type=number]{width:86px;font:inherit;font-size:13.5px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;text-align:right}
-.field input[type=range]{grid-column:1/3;width:100%;accent-color:var(--blue)}
-.group{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px;font-weight:650}
-.result{text-align:center;padding:6px 0 4px}
-.prob{font-size:54px;font-weight:700;line-height:1;margin:6px 0}
-.band{display:inline-block;padding:5px 12px;border-radius:999px;font-weight:650;font-size:14px;color:#fff}
-.meter{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--low) 0 40%,var(--mod) 40% 70%,var(--high) 70% 100%);position:relative;margin:18px 4px 6px}
-.meter i{position:absolute;top:-5px;width:4px;height:22px;background:var(--ink);border-radius:2px;transform:translateX(-2px);transition:left .25s}
-.ticks{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin:0 4px}
-.action{margin-top:14px;padding:12px 14px;border-radius:8px;background:var(--light);text-align:left;font-size:13.5px}
-.drivers .row{display:grid;grid-template-columns:150px 1fr 54px;gap:8px;align-items:center;font-size:12.5px;padding:3px 0}
-.bar{height:12px;position:relative;background:#f1f4f8;border-radius:3px}
-.bar span{position:absolute;top:0;height:12px;border-radius:3px}
-.bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#9aa5b1}
-.note{font-size:12px;color:var(--muted);margin-top:10px}
-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px}
-th,td{padding:5px 6px;border-bottom:1px solid #eef2f6;text-align:right}
+html{-webkit-text-size-adjust:100%;scrollbar-color:#b4c0cf var(--bg)}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;color:var(--ink);background:var(--bg);line-height:1.5;font-variant-numeric:tabular-nums}
+::selection{background:#cfe0f3;color:var(--navy)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+header{background:var(--navy);color:#fff;border-bottom:3px solid var(--high)}
+.wrap{max-width:1180px;margin:0 auto;padding:20px}
+header h1{margin:0;font-size:22px;font-weight:650;letter-spacing:-.01em;text-wrap:balance}
+header p{margin:6px 0 0;font-size:14px;color:#d3deec;max-width:72ch}
+main{max-width:1180px;margin:0 auto;padding:20px 20px 40px;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){main{grid-template-columns:1fr}.wrap{padding:16px}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;min-width:0}
+h2{font-size:16px;font-weight:650;margin:0 0 14px;color:var(--navy);letter-spacing:-.005em}
+button{font:inherit;font-size:14px;line-height:1.2;min-height:36px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:8px;padding:7px 12px;cursor:pointer;transition:background-color .15s,border-color .15s,color .15s}
+button:hover{border-color:var(--blue);color:var(--blue);background:#f3f7fc}
+button:active{background:var(--light)}
+button[aria-pressed=true]{background:var(--navy);border-color:var(--navy);color:#fff}
+button:focus-visible{outline:none;box-shadow:var(--ring);border-color:var(--blue)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.field{display:grid;grid-template-columns:minmax(0,1fr) 92px;gap:4px 12px;align-items:center;padding:10px 0;border-top:1px solid var(--line-soft);transition:opacity .2s}
+.field label{font-size:14px;font-weight:550}
+.field small{grid-column:1/3;color:var(--muted);font-size:12.5px}
+.field input[type=number]{width:92px;min-height:36px;font:inherit;font-size:14px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;text-align:right;color:var(--ink);background:var(--surface)}
+.field input[type=number]:focus-visible{outline:none;box-shadow:var(--ring);border-color:var(--blue)}
+.field input[type=range]{grid-column:1/3;width:100%;margin:4px 0;accent-color:var(--blue);height:24px}
+.site-mode .field[data-profile]{opacity:.5}
+.group{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin:18px 0 4px;font-weight:650}
+.group:first-child{margin-top:4px}
+.group-note{font-size:12.5px;color:var(--muted);margin:0 0 4px;display:none}
+.site-mode .group-note{display:block}
+.result{text-align:center;padding:4px 0}
+.prob{font-size:56px;font-weight:700;line-height:1;margin:8px 0 10px;letter-spacing:-.02em}
+.band{display:inline-block;padding:5px 14px;border-radius:999px;font-weight:650;font-size:14px;color:#fff}
+.meter{height:12px;border-radius:999px;background:linear-gradient(90deg,var(--low) 0 40%,var(--mod) 40% 70%,var(--high) 70% 100%);position:relative;margin:22px 4px 8px}
+.meter i{position:absolute;top:-5px;width:4px;height:22px;background:var(--ink);border-radius:2px;border:1px solid #fff;transform:translateX(-2px);transition:left .25s cubic-bezier(.22,1,.36,1)}
+.ticks{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted);margin:0 4px}
+.action{margin-top:16px;padding:12px 14px;border-radius:8px;background:var(--light);text-align:left;font-size:14px}
+.scope{margin:10px 0 0;font-size:12.5px;color:var(--muted);text-align:left}
+.drivers .row{display:grid;grid-template-columns:minmax(0,150px) minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13px;padding:4px 0}
+.drivers .row>span:last-child{text-align:right;font-weight:550}
+.bar{height:12px;position:relative;background:#eef2f7;border-radius:4px}
+.bar span{position:absolute;top:0;height:12px;border-radius:4px}
+.bar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:#8c98a6}
+.note{font-size:12.5px;color:var(--muted);margin:12px 0 0;max-width:75ch}
+.tablewrap{overflow-x:auto;margin-top:10px;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--line-soft);text-align:right;white-space:nowrap}
 th:first-child,td:first-child{text-align:left}
-th{background:var(--light);color:var(--navy)}
+th{background:var(--light);color:var(--navy);font-weight:650;position:sticky;top:0}
 .full{grid-column:1/-1}
-.drop{border:1.5px dashed var(--line);border-radius:8px;padding:14px;text-align:center;font-size:13px;color:var(--muted)}
-.drop input{margin-top:8px}
-.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
-.kpi{flex:1 1 120px;background:var(--light);border-radius:8px;padding:9px 11px}
-.kpi b{display:block;font-size:18px;color:var(--navy)}
-.kpi span{font-size:11.5px;color:var(--muted)}
-footer{max-width:1180px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:var(--muted)}
+.drop{border:1.5px dashed #b4c0cf;border-radius:10px;padding:16px;text-align:center;font-size:14px;color:var(--muted);background:#fafbfd}
+.drop code{overflow-wrap:anywhere;font-size:12.5px;color:var(--ink)}
+.drop input{margin-top:10px;max-width:100%;font:inherit;font-size:13px}
+.drop input::file-selector-button{font:inherit;font-size:14px;min-height:36px;margin-right:10px;padding:7px 12px;border:1px solid var(--blue);background:var(--blue);color:#fff;border-radius:8px;cursor:pointer}
+.drop input::file-selector-button:hover{background:var(--navy);border-color:var(--navy)}
+.kpis{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.kpi{flex:1 1 130px;background:var(--light);border-radius:8px;padding:10px 12px}
+.kpi b{display:block;font-size:20px;line-height:1.25;color:var(--navy)}
+.kpi span{font-size:12.5px;color:var(--muted)}
+footer{max-width:1180px;margin:0 auto;padding:0 20px 32px;font-size:12.5px;color:var(--muted)}
+/* map */
+.maphead{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin-bottom:14px}
+.maphead h2{margin:0}
+.mapgrid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.mapgrid{grid-template-columns:1fr}}
+#map{height:480px;min-height:320px;border:1px solid var(--line);border-radius:10px;background:#e8edf3;z-index:0}
+@media (max-width:860px){#map{height:340px}}
+.legend{display:grid;gap:8px}
+.legend .item{display:flex;align-items:center;gap:10px;font-size:13.5px}
+.dot{display:inline-block;border-radius:50%;flex:none;border:2px solid #fff;box-shadow:0 0 0 1px rgba(29,39,51,.25)}
+.count{font-size:15px;font-weight:650;color:var(--navy);margin:2px 0 4px}
+.sites{margin-top:12px;max-height:340px;overflow:auto;border:1px solid var(--line-soft);border-radius:8px}
+.sites td button{border:0;background:none;padding:2px 0;min-height:32px;color:var(--ink);text-align:left;font-weight:550;border-radius:4px}
+.sites td button:hover{color:var(--blue);background:none;text-decoration:underline}
+.sites td button[aria-pressed=true]{color:var(--navy);background:none;text-decoration:underline;text-decoration-thickness:2px}
+.sites tr.sel td{background:#f1f6fc}
+.pill{display:inline-flex;align-items:center;gap:6px}
+.pill i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.leaflet-container{font:inherit}
+.leaflet-tile-pane{filter:grayscale(.75) brightness(1.06) contrast(.92)}
+.leaflet-interactive:focus-visible{outline:none;stroke:var(--navy);stroke-width:3}
+.leaflet-tooltip{font-size:13px;color:var(--ink);border-color:var(--line)}
+@media (max-width:860px){button,.field input[type=number]{min-height:44px}.sites td button{min-height:44px}.prob{font-size:48px}.drivers .row{grid-template-columns:minmax(0,112px) minmax(0,1fr) 50px;gap:8px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <header>
+  <div class="wrap">
   <h1>Brahmaputra Valley Flood Predictor</h1>
   <p>Enter sensor readings for a location and get the probability of flooding, the alert decision and what is driving it. Prototype for the DPR, Ministry of Jal Shakti pilot.</p>
+  </div>
 </header>
 <main>
   <section class="card">
     <h2>Sensor readings</h2>
-    <div class="presets">
-      <button data-preset="normal">Dry spell</button>
-      <button data-preset="monsoon">Heavy monsoon spell</button>
-      <button data-preset="flash">Watch: rising river</button>
-      <button data-preset="reset">Brahmaputra typical</button>
+    <div class="presets" role="group" aria-label="Presets">
+      <button data-preset="normal" aria-pressed="false">Dry spell</button>
+      <button data-preset="monsoon" aria-pressed="false">Heavy monsoon spell</button>
+      <button data-preset="flash" aria-pressed="false">Watch: rising river</button>
+      <button data-preset="reset" aria-pressed="true">Brahmaputra typical</button>
     </div>
     <div id="fields"></div>
   </section>
 
   <section>
     <div class="card">
-      <h2>Prediction</h2>
-      <div class="result">
+      <h2 id="pred-title">Prediction: all valley</h2>
+      <div class="result" aria-live="polite">
         <div class="prob" id="prob">0%</div>
         <span class="band" id="band">Low</span>
         <div class="meter"><i id="needle"></i></div>
         <div class="ticks"><span>0%</span><span>40% alert threshold</span><span>70%</span><span>100%</span></div>
       </div>
       <div class="action" id="action"></div>
+      <p class="scope" id="scope"></p>
     </div>
     <div class="card drivers" style="margin-top:20px">
       <h2>What is driving this prediction</h2>
       <div id="drivers"></div>
       <p class="note">Each bar shows how far a reading pushes the risk up (orange) or down (green) compared with a typical Brahmaputra observation. Logistic regression, so every alert can be explained.</p>
+    </div>
+  </section>
+
+  <section class="card full" aria-labelledby="map-title">
+    <div class="maphead">
+      <h2 id="map-title">Valley map: live predictions by site</h2>
+      <button id="btn-custom" type="button" aria-pressed="true">All valley (inputs as entered)</button>
+    </div>
+    <div class="mapgrid">
+      <div id="map" role="application" aria-label="Map of the Brahmaputra valley with 12 flood prediction sites. The same data is in the table beside it."></div>
+      <div>
+        <div class="legend" id="legend">
+          <div class="count" id="count" aria-live="polite"></div>
+          <div class="item"><span class="dot" style="width:16px;height:16px;background:var(--low)"></span>Low: below 40%</div>
+          <div class="item"><span class="dot" style="width:16px;height:16px;background:var(--mod)"></span>Moderate, alert: 40% to 70%</div>
+          <div class="item"><span class="dot" style="width:16px;height:16px;background:var(--high)"></span>High, alert: 70% or more</div>
+          <p class="note" style="margin:4px 0 0">Alert threshold is 40%. Circle size grows with probability. Select a site on the map or in the table to see its prediction and drivers. The river line is an approximate course. Site profiles (distance to river, drainage, blockage, rain and river-level factors) are illustrative, not surveyed.</p>
+        </div>
+        <div class="sites" tabindex="0" role="region" aria-label="Sites table, scrollable">
+          <table>
+            <caption class="sr" style="position:absolute;left:-9999px">Flood probability by site, from upstream to downstream</caption>
+            <thead><tr><th scope="col">Site</th><th scope="col">Probability</th><th scope="col">Band</th></tr></thead>
+            <tbody id="sitebody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -93,7 +164,7 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:v
       <input type="file" id="file" accept=".csv,text/csv">
     </div>
     <div class="kpis" id="kpis"></div>
-    <div id="batch"></div>
+    <div id="batch" class="tablewrap"></div>
     <div id="copywrap" style="display:none;margin-top:10px"><button id="copy">Copy results as CSV</button> <span id="copied" class="note"></span></div>
   </section>
 
@@ -110,6 +181,7 @@ footer{max-width:1180px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:v
 </main>
 <footer>Group assignment, MI-298 Managing Technology and Information Systems for Industry 4.0, IIM Calcutta. Case is fictitious.</footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 const M = {"intercept": -16.802373460888447, "coef": {"distance_to_river_km": -0.33634348127262453, "rain_mm_24h": 0.25371356966905173, "api_7d": 0.3299267714682064, "river_level_m": 1.8300553113005473, "dam_discharge_cumecs": 0.011998651480086652, "storm_drain_capacity_mmph": -0.18175383229625505, "drain_blockage_index": 0.04126226716926124, "tide_level_m": 1.132578596328909, "storm_surge_m": 1.570397256530994}, "ranges": {"distance_to_river_km": {"min": 0.05, "p50": 2.285, "max": 22.89, "brahma_p50": 2.14}, "rain_mm_24h": {"min": 2.7, "p50": 22.5, "max": 80.7, "brahma_p50": 21.6}, "api_7d": {"min": 0.0, "p50": 15.55, "max": 47.7, "brahma_p50": 17.1}, "river_level_m": {"min": 0.8, "p50": 3.96, "max": 7.08, "brahma_p50": 3.95}, "dam_discharge_cumecs": {"min": 1.8, "p50": 71.75, "max": 349.9, "brahma_p50": 73.5}, "storm_drain_capacity_mmph": {"min": 5.0, "p50": 25.55, "max": 52.4, "brahma_p50": 26.0}, "drain_blockage_index": {"min": 0.3, "p50": 27.35, "max": 82.4, "brahma_p50": 24.7}, "tide_level_m": {"min": 0.0, "p50": 0.0, "max": 1.94, "brahma_p50": 0.0}, "storm_surge_m": {"min": 0.0, "p50": 0.0, "max": 1.31, "brahma_p50": 0.0}}, "auc": 0.984, "recall04": 0.919};
 const META = {
@@ -124,6 +196,7 @@ const META = {
   storm_surge_m:{label:"Storm surge", unit:"m", hint:"Coastal only; 0 in the Brahmaputra valley", group:"Coastal (zero inland)"}
 };
 const ORDER = Object.keys(META);
+const PROFILE_KEYS = ["distance_to_river_km","storm_drain_capacity_mmph","drain_blockage_index"];
 const typical = Object.fromEntries(ORDER.map(k=>[k, M.ranges[k].brahma_p50]));
 const PRESETS = {
   normal:{rain_mm_24h:12,api_7d:10,river_level_m:3.2,dam_discharge_cumecs:50,distance_to_river_km:3,storm_drain_capacity_mmph:28,drain_blockage_index:20,tide_level_m:0,storm_surge_m:0},
@@ -148,39 +221,123 @@ function buildFields(){
   const host = document.getElementById("fields"); let g = "";
   for (const k of ORDER){
     const m = META[k], r = M.ranges[k];
-    if (m.group !== g){ g = m.group; host.insertAdjacentHTML("beforeend", `<div class="group">${g}</div>`); }
+    if (m.group !== g){ g = m.group; host.insertAdjacentHTML("beforeend", `<div class="group">${g}</div>` + (g === "Location and drainage" ? `<p class="group-note">These three are replaced by the selected site's profile. Choose All valley on the map to use your own values.</p>` : "")); }
     const step = r.max > 50 ? 1 : 0.1;
     host.insertAdjacentHTML("beforeend", `
-      <div class="field">
+      <div class="field"${PROFILE_KEYS.includes(k) ? " data-profile" : ""}>
         <label for="n-${k}">${m.label} (${m.unit})</label>
         <input type="number" id="n-${k}" min="0" step="${step}">
         <input type="range" id="r-${k}" min="${Math.min(0, r.min)}" max="${(r.max*1.1).toFixed(1)}" step="${step}" aria-label="${m.label}">
         <small>${m.hint}. Sample range ${fmt(r.min)} to ${fmt(r.max)}.</small>
       </div>`);
     const n = document.getElementById("n-"+k), s = document.getElementById("r-"+k);
-    n.addEventListener("input", ()=>{ const v = parseFloat(n.value); if (!isNaN(v)){ state[k]=v; s.value=v; render(); }});
-    s.addEventListener("input", ()=>{ state[k]=parseFloat(s.value); n.value=s.value; render(); });
+    n.addEventListener("input", ()=>{ const v = parseFloat(n.value); if (!isNaN(v)){ state[k]=v; s.value=v; markPreset(null); render(); }});
+    s.addEventListener("input", ()=>{ state[k]=parseFloat(s.value); n.value=s.value; markPreset(null); render(); });
   }
 }
 function sync(){ for (const k of ORDER){ document.getElementById("n-"+k).value = state[k]; document.getElementById("r-"+k).value = state[k]; } }
+// Map sites. Profiles are ILLUSTRATIVE (not surveyed): distance, drain and block are static per site;
+// rain and level are multipliers on the global inputs. All profile values stay inside M.ranges.
+// Tide and surge are 0 for every site.
+const SITES = [
+  {id:"pasighat",name:"Pasighat",lat:28.07,lon:95.33,rain:1.15,level:0.98,dist:2.2,drain:27,block:22},
+  {id:"sadiya",name:"Sadiya",lat:27.83,lon:95.67,rain:1.15,level:1.00,dist:1.8,drain:25,block:28},
+  {id:"dibrugarh",name:"Dibrugarh",lat:27.47,lon:94.91,rain:1.00,level:1.00,dist:2.0,drain:28,block:30},
+  {id:"dhemaji",name:"Dhemaji",lat:27.48,lon:94.58,rain:1.10,level:0.99,dist:1.8,drain:24,block:32},
+  {id:"nlakhimpur",name:"North Lakhimpur",lat:27.24,lon:94.10,rain:1.10,level:0.98,dist:2.6,drain:26,block:28},
+  {id:"majuli",name:"Majuli",lat:26.95,lon:94.17,rain:1.00,level:1.03,dist:0.9,drain:22,block:38},
+  {id:"neamatighat",name:"Neamatighat",lat:26.82,lon:94.24,rain:0.98,level:1.00,dist:1.5,drain:26,block:30},
+  {id:"tezpur",name:"Tezpur",lat:26.63,lon:92.80,rain:0.95,level:0.99,dist:2.4,drain:28,block:26},
+  {id:"morigaon",name:"Morigaon",lat:26.25,lon:92.34,rain:0.95,level:1.00,dist:1.6,drain:23,block:34},
+  {id:"guwahati",name:"Guwahati",lat:26.18,lon:91.75,rain:1.00,level:0.97,dist:2.8,drain:22,block:55},
+  {id:"goalpara",name:"Goalpara",lat:26.17,lon:90.62,rain:0.92,level:1.00,dist:1.6,drain:25,block:34},
+  {id:"dhubri",name:"Dhubri",lat:26.02,lon:89.98,rain:0.92,level:1.01,dist:1.4,drain:24,block:32}
+];
+let sel = null;
+const siteInputs = s => s ? {...state, rain_mm_24h: state.rain_mm_24h*s.rain, river_level_m: state.river_level_m*s.level,
+  distance_to_river_km: s.dist, storm_drain_capacity_mmph: s.drain, drain_blockage_index: s.block, tide_level_m: 0, storm_surge_m: 0} : state;
+const bandKey = p => { const n = band(p).name; return n.startsWith("Low") ? "low" : n.startsWith("Moderate") ? "mod" : "high"; };
+const HEX = {low:"#2f7d5b", mod:"#b7791f", high:"#c2410c"};
+function markPreset(name){ document.querySelectorAll("[data-preset]").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.preset===name))); }
 function render(){
-  const p = predict(state), b = band(p);
+  const site = sel ? SITES.find(s=>s.id===sel) : null, x = siteInputs(site);
+  const p = predict(x), b = band(p);
   document.getElementById("prob").textContent = Math.round(p*100) + "%";
   document.getElementById("prob").style.color = b.color;
-  const be = document.getElementById("band"); be.textContent = b.name; be.style.background = b.color;
+  const be = document.getElementById("band"); be.textContent = b.name; be.style.background = b.color; be.style.color = bandKey(p)==="mod" ? "#1a1306" : "#fff";
+  document.getElementById("pred-title").textContent = site ? "Prediction: " + site.name : "Prediction: all valley";
+  document.getElementById("scope").textContent = site
+    ? `Rainfall ${fmt(x.rain_mm_24h)} mm (input x${site.rain.toFixed(2)}), river level ${fmt(x.river_level_m)} m (input x${site.level.toFixed(2)}). Distance, drainage and blockage use this site's illustrative profile. Tide and surge are 0.`
+    : "Readings are used exactly as entered.";
+  document.querySelector("main").classList.toggle("site-mode", !!site);
+  document.getElementById("btn-custom").setAttribute("aria-pressed", String(!site));
   document.getElementById("needle").style.left = (p*100) + "%";
   document.getElementById("action").innerHTML = p >= 0.4
     ? `<b>Raise alert.</b> Probability is above the 40% threshold. Send to the CWC duty forecaster for validation; once confirmed, ASDMA issues the warning to the district with place, time window and likelihood.`
     : `<b>No alert.</b> Probability is below the 40% threshold. Keep monitoring; the edge gateway will sound local sirens if rainfall or river level crosses a hard limit while the cloud link is down.`;
-  const contrib = ORDER.map(k=>({k, c: M.coef[k]*(state[k]-typical[k])})).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c));
+  const contrib = ORDER.map(k=>({k, c: M.coef[k]*(x[k]-typical[k])})).sort((a,b)=>Math.abs(b.c)-Math.abs(a.c));
   const maxc = Math.max(2, ...contrib.map(d=>Math.abs(d.c)));
   document.getElementById("drivers").innerHTML = contrib.map(d=>{
     const w = Math.abs(d.c)/maxc*50, left = d.c >= 0 ? 50 : 50-w;
     const col = d.c >= 0 ? "var(--high)" : "var(--low)";
     return `<div class="row"><span>${META[d.k].label}</span><div class="bar"><span style="left:${left}%;width:${w}%;background:${col}"></span></div><span style="text-align:right">${d.c>=0?"+":""}${d.c.toFixed(2)}</span></div>`;
   }).join("");
+  updateMap();
 }
-document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click", ()=>{ Object.assign(state, PRESETS[b.dataset.preset]); sync(); render(); }));
+document.querySelectorAll("[data-preset]").forEach(b=>b.addEventListener("click", ()=>{ Object.assign(state, PRESETS[b.dataset.preset]); sync(); markPreset(b.dataset.preset); render(); }));
+
+// map
+const RIVER = {type:"Feature", properties:{name:"Brahmaputra main stem (approximate)"}, geometry:{type:"LineString", coordinates:[
+  [95.67,27.83],[95.30,27.62],[94.91,27.47],[94.60,27.30],[94.35,27.05],[94.24,26.82],[93.80,26.78],[93.30,26.72],[92.80,26.63],
+  [92.30,26.45],[91.90,26.22],[91.75,26.18],[91.20,26.15],[90.62,26.17],[90.30,26.10],[89.98,26.02]]}};
+let map = null; const markers = {};
+function select(id){ sel = id; render(); }
+function initMap(){
+  const body = document.getElementById("sitebody");
+  body.innerHTML = SITES.map(s=>`<tr data-site="${s.id}"><td><button type="button" aria-pressed="false">${s.name}</button></td><td data-p></td><td><span class="pill"><i></i><span data-b></span></span></td></tr>`).join("");
+  body.querySelectorAll("tr").forEach(tr=>tr.querySelector("button").addEventListener("click", ()=>select(tr.dataset.site)));
+  document.getElementById("btn-custom").addEventListener("click", ()=>select(null));
+  if (typeof L === "undefined"){ document.getElementById("map").textContent = "The map could not load. The table beside it lists the same predictions."; return; }
+  map = L.map("map", {scrollWheelZoom:false});
+  map.fitBounds(L.latLngBounds(SITES.map(s=>[s.lat,s.lon])).pad(0.12));
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'}).addTo(map);
+  L.geoJSON(RIVER, {style:{color:"#2563a8", weight:3, opacity:.5}}).bindTooltip("Brahmaputra main stem (approximate course)", {sticky:true}).addTo(map);
+  for (const s of SITES){
+    const m = L.circleMarker([s.lat, s.lon], {radius:8, weight:2, color:"#fff", fillOpacity:.88}).addTo(map).bindTooltip(s.name);
+    m.on("click", ()=>select(s.id));
+    markers[s.id] = m;
+  }
+  for (const s of SITES){
+    const el = markers[s.id].getElement();
+    el.setAttribute("tabindex","0"); el.setAttribute("role","button");
+    el.addEventListener("keydown", e=>{ if (e.key==="Enter" || e.key===" "){ e.preventDefault(); select(s.id); } });
+  }
+  setTimeout(()=>map.invalidateSize(), 0);
+}
+function updateMap(){
+  let alerts = 0;
+  for (const s of SITES){
+    const p = predict(siteInputs(s)), k = bandKey(p), pct = Math.round(p*100), on = s.id === sel;
+    if (p >= 0.4) alerts++;
+    const m = markers[s.id];
+    if (m){
+      m.setStyle({radius: 7 + p*13, fillColor: HEX[k], color: on ? "#1F3A5F" : "#fff", weight: on ? 4 : 2});
+      if (on) m.bringToFront();
+      m.setTooltipContent(`${s.name}: ${pct}% (${band(p).name})`);
+      const el = m.getElement(); if (el) el.setAttribute("aria-label", `${s.name}, ${pct}%, ${band(p).name}. Select to show details.`);
+    }
+    const tr = document.querySelector(`tr[data-site="${s.id}"]`);
+    if (tr){
+      tr.classList.toggle("sel", on);
+      tr.querySelector("button").setAttribute("aria-pressed", String(on));
+      tr.querySelector("[data-p]").textContent = pct + "%";
+      tr.querySelector("[data-b]").textContent = band(p).name;
+      tr.querySelector("i").style.background = HEX[k];
+    }
+  }
+  document.getElementById("count").textContent = `${alerts} of ${SITES.length} sites on alert`;
+}
 
 // batch
 document.getElementById("colnames").textContent = ORDER.join(", ");
@@ -222,7 +379,7 @@ document.getElementById("copy").addEventListener("click", async ()=>{
 
 document.getElementById("k-auc").textContent = M.auc.toFixed(3);
 document.getElementById("k-rec").textContent = Math.round(M.recall04*100) + "%";
-buildFields(); sync(); render();
+buildFields(); sync(); initMap(); render();
 </script>
 </body>
 </html>
